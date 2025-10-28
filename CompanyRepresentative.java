@@ -16,7 +16,7 @@ public class CompanyRepresentative extends User {
         this.department = department;
         this.position = position;
         this.email = email;
-        this.status = "Pending"; // default = pending
+        this.status = "Pending";
         this.internships = new ArrayList<>();
     }
     //load details from csv.
@@ -24,10 +24,10 @@ public class CompanyRepresentative extends User {
         List<CompanyRepresentative> representatives = new ArrayList<>();
         for (int i = 1; i < csvLines.size(); i++) {
             String line = csvLines.get(i).trim();
-            if (line.isEmpty()) continue; // Skip empty lines
+            if (line.isEmpty()) continue;
 
             String[] data = line.split(",");
-            if (data.length < 7) continue; // Skip incomplete data
+            if (data.length < 7) continue;
 
             String id = data[0];
             String name = data[1];
@@ -36,7 +36,7 @@ public class CompanyRepresentative extends User {
             String position = data[4];
             String email = data[5];
             String status = data[6];
-            String password = "password"; // Default password
+            String password = "password";
 
             CompanyRepresentative rep = new CompanyRepresentative(
                     id, name, password, companyName, department, position, email
@@ -94,7 +94,7 @@ public class CompanyRepresentative extends User {
     @Override
     public boolean login(String inputUserID, String inputPassword) {
         if (!status.equalsIgnoreCase("Approved")) {
-            System.out.println("Login failed! Your account is still pending approval from Career Center Staff.");
+            System.out.println("Login failed! Your account is still pending approval.");
             return false;
         }
         return super.login(inputUserID, inputPassword);
