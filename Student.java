@@ -82,7 +82,7 @@ public class Student extends User{
 
     public boolean canApplyToLevel(String level){
         if (level == null) return true;
-        return (yearOfStudy >= 3) || level.equalIsIgnoreCase("Basic");
+        return (yearOfStudy >= 3) || level.equalIgnoreCase("Basic");
     }
 
     public void applyForInternship(Internship internship) {
@@ -95,7 +95,7 @@ public class Student extends User{
             System.out.println("Cannot apply: reached max " + MAX_APPLICATIONS + " applications.");
             return;
         }
-        if (hasAppliedto(internship)){
+        if (hasAppliedTo(internship)){
             System.out.println("You have already applied to " + internship.getTitle() + ".");
             return;
         }
