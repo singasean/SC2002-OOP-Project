@@ -126,9 +126,11 @@ public class CompanyRepresentative extends User {
             Internship internship = internships.get(i);
             System.out.println((i + 1) + ". " + internship.getTitle());
             System.out.println("   Level: " + internship.getLevel());
+            System.out.println("   Visibility: " + (internship.isVisible() ? "ON" : "OFF"));  // ← Add this line
             System.out.println("-".repeat(80));
         }
     }
+
 
     public void viewInternshipDetails(Internship internship) {
         if (!internships.contains(internship)) {
@@ -158,6 +160,38 @@ public class CompanyRepresentative extends User {
         return true;
     }
 
+    public Internship createInternship(String title, String description, String level,
+                                       String preferredMajor, String openingDate,
+                                       String closingDate, int slots) {
+        
+        if (hasReachedMaxInternships()) {
+            System.out.println("Cannot create internship: reached maximum of " + MAX_INTERNSHIPS + " internships.");
+            return null;
+        }
+        
+        if (slots < 1 || slots > 10) {
+            System.out.println("Cannot create internship: number of slots must be between 1 and 10.");
+            return null;
+        }
+
+        Internship internship = new Internship(
+                title,
+                description,
+                level,
+                preferredMajor,
+                openingDate,
+                closingDate,
+                slots,
+                this.companyName,
+                this.getUserID()
+        );
+
+        internships.add(internship);
+        System.out.println("Internship '" + title + "' created successfully!");
+        System.out.println("Status: Pending (awaiting Career Center Staff approval)");
+        return internship;
+    }
+
     public boolean rejectApplication(Internship internship, String studentID) {
         if (!internships.contains(internship)) {
             System.out.println("Error: You are not the representative for this internship.");
@@ -185,6 +219,33 @@ public class CompanyRepresentative extends User {
         System.out.println("Internship '" + internship.getTitle() + "' removed from your list.");
         return true;
     }
+
+    public boolean toggleInternshipVisibility(Internship internship) {
+        if (!internships.contains(internship)) {
+            System.out.println("Error: You are not the representative for this internship.");
+            return false;
+        }
+
+        internship.toggleVisibility();
+        System.out.println("Visibility for '" + internship.getTitle() + "' set to " +
+                (internship.isVisible() ? "ON" : "OFF"));
+        return true;
+    }
+    public boolean confirmPlacement(Internship internship, Student student) {
+        if (!internships.contains(internship)) {
+            System.out.println("Error: You are not the representative for this internship.");
+            return false;
+        }
+
+        internship.incrementConfirmedSlots();
+        
+        if (internship.getConfirmedSlots() >= internship.getTotalSlots()) {
+            internship.setStatus("Filled");
+            System.out.println("Internship '" + internship.getTitle() + "' is now FILLED.");
+        }
+        return true;
+    }
+
 
     @Override
     public String toString() {
