@@ -44,7 +44,7 @@ public class Test {
         }
     }
 
-    // === LOGIN LOGIC ===
+    //Login
     private static User login(Scanner sc) {
         System.out.print("Enter ID/Email: ");
         String id = sc.nextLine().trim();
