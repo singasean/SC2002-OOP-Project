@@ -3,7 +3,7 @@ import java.util.*;
 
 public class Test {
     private static final String STUDENT_CSV = "sample_student_list.csv";
-    private static final String COMPANY_CSV = "sample_company_list.csv";
+    private static final String COMPANY_CSV = "sample_company_representative_list.csv";
     private static final String DEFAULT_PASSWORD = "password";
 
     private static List<Student> students = new ArrayList<>();
