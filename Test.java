@@ -4,11 +4,13 @@ import java.util.*;
 public class Test {
     private static final String STUDENT_CSV = "sample_student_list.csv";
     private static final String COMPANY_CSV = "sample_company_representative_list.csv";
+    private static final String CAREER_CSV = "sample_career_center_staff_list.csv";
     private static final String DEFAULT_PASSWORD = "password";
 
     private static List<Student> students = new ArrayList<>();
     private static List<CompanyRepresentative> companyReps = new ArrayList<>();
     private static List<Internship> allInternships = new ArrayList<>();
+    private static List<CareerCenterStaff> careerStaff = new ArrayList<>();
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
@@ -17,6 +19,7 @@ public class Test {
         // Load data
         students = Student.loadFromCSVLines(readCSV(STUDENT_CSV));
         companyReps = CompanyRepresentative.loadFromCSVLines(readCSV(COMPANY_CSV));
+        careerStaff = CareerCenterStaff.loadFromCSVLines(readCSV(CAREER_CSV));
 
         System.out.println("System initialized with " + students.size() + " students and " + companyReps.size() + " company representatives.");
 
@@ -32,6 +35,7 @@ public class Test {
                     if (loggedIn != null) {
                         if (loggedIn instanceof Student s) studentMenu(sc, s);
                         else if (loggedIn instanceof CompanyRepresentative rep) companyRepMenu(sc, rep);
+                        else if (loggedIn instanceof CareerCenterStaff staff) careerStaffMenu(sc, staff);
                     }
                 }
                 case "2" -> {
@@ -63,6 +67,12 @@ public class Test {
                 return null; // account not approved
             }
         }
+        for (CareerCenterStaff staff : careerStaff) {
+            if (staff.getUserID().equals(id) && staff.getPassword().equals(pw)) {
+                staff.login(id, pw);
+                return staff;
+            }
+}
 
         System.out.println("Login failed. Invalid ID or password.");
         return null;
@@ -124,6 +134,33 @@ public class Test {
                     return;
                 }
                 default -> System.out.println("Invalid choice. Try again.");
+                }
+            }
+        }
+        // === CAREER CENTER STAFF MENU ===
+    private static void careerStaffMenu(Scanner sc, CareerCenterStaff staff) {
+        while (true) {
+            System.out.println("\n--- Career Center Staff Menu ---");
+            System.out.println("1. View Pending Company Reps");
+            System.out.println("2. Review Company Rep");
+            System.out.println("3. Review Internship");
+            System.out.println("4. Review Withdrawal Request");
+            System.out.println("5. Generate Internship Report");
+            System.out.println("6. Logout");
+            System.out.print("Choose option: ");
+            String choice = sc.nextLine();
+
+            switch (choice) {
+                case "1" -> viewPendingReps();
+                case "2" -> reviewRep(sc, staff);
+                case "3" -> reviewInternship(sc, staff);
+                case "4" -> reviewWithdrawal(sc, staff);
+                case "5" -> generateReport(sc, staff);
+                case "6" -> {
+                    staff.logout();
+                    return;
+                }
+                default -> System.out.println("Invalid choice.");
             }
         }
     }
@@ -247,5 +284,63 @@ public class Test {
             System.out.println("Error reading file: " + filename + " (" + e.getMessage() + ")");
         }
         return lines;
+    }
+        private static void viewPendingReps() {
+        for (CompanyRepresentative rep : companyReps) {
+            if (rep.getStatus().equalsIgnoreCase("Pending")) {
+                System.out.println(rep);
+            }
+        }
+    }
+
+    private static void reviewRep(Scanner sc, CareerCenterStaff staff) {
+        System.out.print("Enter Company Rep ID: ");
+        String id = sc.nextLine();
+        for (CompanyRepresentative rep : companyReps) {
+            if (rep.getUserID().equals(id)) {
+                System.out.print("Approve? (y/n): ");
+                boolean approve = sc.nextLine().equalsIgnoreCase("y");
+                staff.reviewCompanyRep(rep, approve);
+                return;
+            }
+        }
+        System.out.println("Rep not found.");
+    }
+
+    private static void reviewInternship(Scanner sc, CareerCenterStaff staff) {
+        viewAllInternships();
+        System.out.print("Enter internship title: ");
+        String title = sc.nextLine();
+        for (Internship i : allInternships) {
+            if (i.getTitle().equalsIgnoreCase(title)) {
+                System.out.print("Approve? (y/n): ");
+                boolean approve = sc.nextLine().equalsIgnoreCase("y");
+                staff.reviewInternship(i, approve);
+                return;
+            }
+        }
+        System.out.println("Internship not found.");
+    }
+
+    private static void reviewWithdrawal(Scanner sc, CareerCenterStaff staff) {
+        // Simplified: loop through all students and their withdrawal requests
+        for (Student s : students) {
+            for (Internship i : s.getApplications()) {
+                if (s.hasRequestedWithdrawal(i)) {
+                    System.out.println(s.getName() + " requested withdrawal from " + i.getTitle());
+                    System.out.print("Approve? (y/n): ");
+                    boolean approve = sc.nextLine().equalsIgnoreCase("y");
+                    staff.reviewWithdrawal(s, i, approve);
+                    return;
+                }
+            }
+        }
+        System.out.println("No pending withdrawal requests.");
+    }
+
+    private static void generateReport(Scanner sc, CareerCenterStaff staff) {
+        System.out.print("Filter by (approved/pending/rejected/filled/all): ");
+        String filter = sc.nextLine();
+        staff.generateReport(allInternships, filter);
     }
 }

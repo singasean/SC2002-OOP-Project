@@ -81,9 +81,10 @@ public class Student extends User{
     }
 
     public boolean canApplyToLevel(String level){
-        if (level == null) return true;
-        return (yearOfStudy >= 3) || level.equalIgnoreCase("Basic");
-    }
+    if (level == null) return true;
+    return (yearOfStudy >= 3) || level.equalsIgnoreCase("Basic");
+}
+
 
     public void applyForInternship(Internship internship) {
         if(!isVisible){
@@ -161,5 +162,16 @@ public class Student extends User{
             System.out.println(i.getTitle() + " | Status: " + i.getStatusForStudent(this.getUserID()));
         }
     }
+
+    // in Student.java
+    public boolean removeApplicationInternal(Internship internship) {
+        if (!applications.contains(internship)) {
+            return false; // nothing to remove
+        }
+        applications.remove(internship);
+        withdrawalRequested.remove(internship); // clean up any pending withdrawals
+        return true;
+    }
+
     
 }
