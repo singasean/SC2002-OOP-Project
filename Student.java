@@ -33,12 +33,12 @@ public class Student extends User{
     }
 
     //getters
-    public int getYearOfStudy() { 
-        return yearOfStudy; 
+    public int getYearOfStudy() {
+        return yearOfStudy;
     }
-    
-    public String getMajor() { 
-        return major; 
+
+    public String getMajor() {
+        return major;
     }
 
     public boolean isVisible(){
@@ -81,9 +81,9 @@ public class Student extends User{
     }
 
     public boolean canApplyToLevel(String level){
-    if (level == null) return true;
-    return (yearOfStudy >= 3) || level.equalsIgnoreCase("Basic");
-}
+        if (level == null) return true;
+        return (yearOfStudy >= 3) || level.equalsIgnoreCase("Basic");
+    }
 
 
     public void applyForInternship(Internship internship) {
@@ -91,7 +91,7 @@ public class Student extends User{
             System.out.println("Cannot apply: your profile visibility is OFF.");
             return;
         }
-        
+
         if (hasReachedMaxApplications()) {
             System.out.println("Cannot apply: reached max " + MAX_APPLICATIONS + " applications.");
             return;
@@ -125,6 +125,7 @@ public class Student extends User{
         }
 
         acceptedPlacement = internship;
+        internship.incrementConfirmedSlots();
 
         for (Internship other : applications){
             if (other != internship){
@@ -142,7 +143,7 @@ public class Student extends User{
         }
         if (withdrawalRequested.contains(internship)){
             System.out.println("Withdrawal has already been requested for " + internship.getTitle() + ".");
-            return false;   
+            return false;
         }
         withdrawalRequested.add(internship);
         System.out.println("Withdrawal request submitted for " + internship.getTitle() + ". Awaiting Career Center Staff approval.");
@@ -152,7 +153,7 @@ public class Student extends User{
     public boolean hasRequestedWithdrawal(Internship internship){
         return withdrawalRequested.contains(internship);
     }
-    
+
     public void viewApplications() {
         if (applications.isEmpty()) {
             System.out.println("No applications yet.");
@@ -163,15 +164,25 @@ public class Student extends User{
         }
     }
 
-    // in Student.java
     public boolean removeApplicationInternal(Internship internship) {
         if (!applications.contains(internship)) {
-            return false; // nothing to remove
+            return false;
         }
         applications.remove(internship);
-        withdrawalRequested.remove(internship); // clean up any pending withdrawals
+        withdrawalRequested.remove(internship);
         return true;
     }
+    @Override
+    public String toString() {
+        return "Student{" +
+                "userID='" + getUserID() + "'" +
+                ", name='" + getName() + "'" +
+                ", yearOfStudy=" + yearOfStudy +
+                ", major='" + major + "'" +
+                ", visibility=" + (isVisible ? "ON" : "OFF") +
+                ", applications=" + applications.size() +
+                ", acceptedPlacement=" + (acceptedPlacement != null ? acceptedPlacement.getTitle() : "None") +
+                '}';
+    }
 
-    
 }

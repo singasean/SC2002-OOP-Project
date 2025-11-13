@@ -17,7 +17,6 @@ public class Internship {
 
     private final Map<String, String> statusByStudent;
 
-    // NEW Constructor with all required fields
     public Internship(String title, String description, String level,
                       String preferredMajor, String openingDate, String closingDate,
                       int totalSlots, String companyName, String representativeID) {
