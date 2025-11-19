@@ -1,13 +1,11 @@
-// Single Responsibility - handles application business logic
 public class ApplicationService implements IApplicationService {
     private final IUserRepository<Student> studentRepo;
     private final IInternshipRepository internshipRepo;
     private final IOutputService outputService;
 
-    // Dependency Injection
     public ApplicationService(IUserRepository<Student> studentRepo,
-                             IInternshipRepository internshipRepo,
-                             IOutputService outputService) {
+                              IInternshipRepository internshipRepo,
+                              IOutputService outputService) {
         this.studentRepo = studentRepo;
         this.internshipRepo = internshipRepo;
         this.outputService = outputService;
@@ -24,13 +22,35 @@ public class ApplicationService implements IApplicationService {
         }
 
         if (!student.canApply()) {
-            outputService.displayError("Cannot apply: limit reached or already accepted.");
+            outputService.displayError("Cannot apply: limit reached (max 3) or already accepted.");
             return false;
         }
 
         if (!"Approved".equals(internship.getStatus()) || !internship.isVisible()) {
             outputService.displayError("Internship is not available.");
             return false;
+        }
+
+        if (!internship.hasAvailableSlots()) {
+            outputService.displayError("No available slots for this internship.");
+            return false;
+        }
+
+        String preferredMajor = internship.getPreferredMajor();
+        if (!preferredMajor.equalsIgnoreCase(student.getMajor()) &&
+                !preferredMajor.equalsIgnoreCase("all")) {
+            outputService.displayError("Your major does not match the internship requirements.");
+            return false;
+        }
+
+        int year = student.getYearOfStudy();
+        String level = internship.getLevel();
+
+        if (year <= 2) {
+            if (!level.equalsIgnoreCase("Basic")) {
+                outputService.displayError("Year 1 and 2 students can only apply for Basic-level internships.");
+                return false;
+            }
         }
 
         student.addApplication(internshipID);
@@ -60,20 +80,15 @@ public class ApplicationService implements IApplicationService {
         Internship internship = internshipRepo.getById(internshipID);
 
         if (student == null || internship == null) {
+            outputService.displayError("Student or internship not found.");
             return false;
         }
 
-        if (!internship.hasAvailableSlots()) {
-            outputService.displayError("No available slots.");
-            return false;
-        }
-
-        internship.setStudentStatus(studentID, "Approved");
-        internship.incrementConfirmedSlots();
-        student.setAcceptedPlacement(internshipID);
-        outputService.displayMessage("Application approved!");
+        internship.updateStudentStatus(studentID, "Approved");
+        outputService.displayMessage("Application accepted!");
         return true;
     }
+
 
     @Override
     public boolean rejectApplication(String internshipID, String studentID) {

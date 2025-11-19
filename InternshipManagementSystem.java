@@ -39,18 +39,22 @@ public class InternshipManagementSystem {
     }
 
     public void loadInitialData(String studentCSV, String companyCSV, String staffCSV) {
+        // Load students
         List<Student> students = dataLoader.loadStudents(studentCSV);
         for (Student s : students) {
             studentRepo.add(s);
             authService.registerUser(s.getUserID(), "password");
         }
 
+        // Load company reps - REGISTER EMAILS!
         List<CompanyRepresentative> reps = dataLoader.loadCompanyReps(companyCSV);
         for (CompanyRepresentative r : reps) {
             companyRepo.add(r);
             authService.registerUser(r.getUserID(), "password");
+            authService.registerEmail(r.getEmail(), r.getUserID()); // NEW LINE!
         }
 
+        // Load staff
         List<CareerCenterStaff> staff = dataLoader.loadStaff(staffCSV);
         for (CareerCenterStaff s : staff) {
             staffRepo.add(s);
@@ -60,37 +64,57 @@ public class InternshipManagementSystem {
         outputService.displayMessage("Data loaded successfully!");
     }
 
+
     public void run() {
         boolean running = true;
 
         while (running) {
             outputService.displayMessage("\n===== Internship Management System =====");
-            outputService.displayMessage("1. Student Login");
-            outputService.displayMessage("2. Company Representative Login");
-            outputService.displayMessage("3. Career Center Staff Login");
+            outputService.displayMessage("1. Student Login (use Student ID)");
+            outputService.displayMessage("2. Company Representative Login (use Email)");  // Updated
+            outputService.displayMessage("3. Career Center Staff Login (use Staff ID)");
             outputService.displayMessage("4. Register Company Representative");
             outputService.displayMessage("5. Exit");
 
             String choice = scanner.nextLine();
 
             switch (choice) {
-                case "1": handleLogin(studentRepo); break;
-                case "2": handleLogin(companyRepo); break;
-                case "3": handleLogin(staffRepo); break;
-                case "4": registerCompanyRep(); break;
-                case "5": running = false; outputService.displayMessage("Goodbye!"); break;
-                default: outputService.displayError("Invalid choice!");
+                case "1":
+                    handleLogin(studentRepo);
+                    break;
+                case "2":
+                    handleLogin(companyRepo);
+                    break;
+                case "3":
+                    handleLogin(staffRepo);
+                    break;
+                case "4":
+                    registerCompanyRep();
+                    break;
+                case "5":
+                    running = false;
+                    outputService.displayMessage("Goodbye!");
+                    break;
+                default:
+                    outputService.displayError("Invalid choice!");
             }
         }
     }
 
+
     private <T extends User> void handleLogin(IUserRepository<T> repo) {
-        outputService.displayMessage("Enter User ID:");
-        String userID = scanner.nextLine();
+        outputService.displayMessage("Enter User ID or Email:");  // Updated prompt
+        String userIDOrEmail = scanner.nextLine();
         outputService.displayMessage("Enter Password:");
         String password = scanner.nextLine();
 
-        if (authService.authenticate(userID, password)) {
+        if (authService.authenticate(userIDOrEmail, password)) {
+            // Get actual userID (in case email was entered)
+            String userID = userIDOrEmail;
+            if (userIDOrEmail.contains("@")) {
+                userID = authService.getUserIDFromEmail(userIDOrEmail);
+            }
+
             T user = repo.getById(userID);
             if (user != null) {
                 runUserSession(user);
@@ -98,6 +122,7 @@ public class InternshipManagementSystem {
             }
         }
     }
+
 
     private void runUserSession(User user) {
         IMenuController controller = controllerFactory.createController(user);
@@ -116,9 +141,9 @@ public class InternshipManagementSystem {
     }
 
     private boolean isLogoutChoice(String choice, User user) {
-        if (user instanceof Student) return "6".equals(choice);
-        if (user instanceof CompanyRepresentative) return "4".equals(choice);
-        if (user instanceof CareerCenterStaff) return "5".equals(choice);
+        if (user instanceof Student) return "8".equals(choice);
+        if (user instanceof CompanyRepresentative) return "7".equals(choice);
+        if (user instanceof CareerCenterStaff) return "8".equals(choice);
         return false;
     }
 
@@ -131,8 +156,21 @@ public class InternshipManagementSystem {
         String dept = scanner.nextLine();
         outputService.displayMessage("Enter position:");
         String position = scanner.nextLine();
-        outputService.displayMessage("Enter email:");
-        String email = scanner.nextLine();
+
+        // Email validation with specific error messages
+        String email;
+        while (true) {
+            outputService.displayMessage("Enter email (format: name@example.com):");
+            email = scanner.nextLine().trim();
+
+            String validationError = validateEmail(email);
+            if (validationError == null) {
+                break;  // Email is valid
+            } else {
+                outputService.displayError(validationError);
+            }
+        }
+
         outputService.displayMessage("Enter password:");
         String password = scanner.nextLine();
 
@@ -141,6 +179,55 @@ public class InternshipManagementSystem {
 
         companyRepo.add(rep);
         authService.registerUser(id, password);
-        outputService.displayMessage("Registration successful! Your ID: " + id + " (Pending approval)");
+        authService.registerEmail(email, id);
+        outputService.displayMessage("Registration successful! Login with your email: " + email + " (Pending approval)");
     }
+
+    // Returns null if valid, or error message if invalid
+    private String validateEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            return "Email cannot be empty!";
+        }
+
+        if (email.contains(" ")) {
+            return "Email cannot contain spaces!";
+        }
+
+        if (!email.contains("@")) {
+            return "Email must contain @ symbol! (e.g., user@company.com)";
+        }
+
+        int atIndex = email.indexOf("@");
+
+        if (atIndex == 0) {
+            return "Email must have characters before @ symbol!";
+        }
+
+        if (atIndex == email.length() - 1) {
+            return "Email must have domain after @ symbol!";
+        }
+
+        // Check for multiple @ symbols
+        if (email.indexOf("@") != email.lastIndexOf("@")) {
+            return "Email can only have one @ symbol!";
+        }
+
+        String afterAt = email.substring(atIndex + 1);
+
+        if (!afterAt.contains(".")) {
+            return "Email domain must contain a dot! (e.g., @company.com)";
+        }
+
+        int dotIndex = afterAt.lastIndexOf(".");
+        if (dotIndex == afterAt.length() - 1) {
+            return "Email must have extension after dot! (e.g., .com, .org)";
+        }
+
+        if (dotIndex == 0) {
+            return "Email domain must have name before dot!";
+        }
+
+        return null;  // Email is valid
+    }
+
 }

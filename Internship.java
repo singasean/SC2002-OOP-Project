@@ -79,6 +79,7 @@ public class Internship {
         }
     }
 
+
     public void setStudentStatus(String studentID, String status) {
         statusByStudent.put(studentID, status);
     }
@@ -87,6 +88,9 @@ public class Internship {
         return statusByStudent.getOrDefault(studentID, "Not Applied");
     }
 
+    public void updateStudentStatus(String studentID, String status) {
+        statusByStudent.put(studentID, status);
+    }
     public Map<String, String> getAllStudentStatuses() {
         return new HashMap<>(statusByStudent);
     }

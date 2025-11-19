@@ -1,7 +1,5 @@
 import java.util.*;
 
-// Factory Pattern - creates appropriate controllers
-// Open-Closed - can add new controller types without modifying existing code
 public class MenuControllerFactory {
     private final IApplicationService applicationService;
     private final IApprovalService approvalService;
@@ -10,16 +8,18 @@ public class MenuControllerFactory {
     private final IUserRepository<CareerCenterStaff> staffRepo;
     private final IInternshipRepository internshipRepo;
     private final IOutputService outputService;
+    private final IAuthenticationService authService;
     private final Scanner scanner;
 
     public MenuControllerFactory(IApplicationService applicationService,
-                                IApprovalService approvalService,
-                                IUserRepository<Student> studentRepo,
-                                IUserRepository<CompanyRepresentative> companyRepo,
-                                IUserRepository<CareerCenterStaff> staffRepo,
-                                IInternshipRepository internshipRepo,
-                                IOutputService outputService,
-                                Scanner scanner) {
+                                 IApprovalService approvalService,
+                                 IUserRepository<Student> studentRepo,
+                                 IUserRepository<CompanyRepresentative> companyRepo,
+                                 IUserRepository<CareerCenterStaff> staffRepo,
+                                 IInternshipRepository internshipRepo,
+                                 IOutputService outputService,
+                                 IAuthenticationService authService,
+                                 Scanner scanner) {
         this.applicationService = applicationService;
         this.approvalService = approvalService;
         this.studentRepo = studentRepo;
@@ -27,20 +27,20 @@ public class MenuControllerFactory {
         this.staffRepo = staffRepo;
         this.internshipRepo = internshipRepo;
         this.outputService = outputService;
+        this.authService = authService;
         this.scanner = scanner;
     }
 
-    // Polymorphism - returns appropriate controller based on user type
     public IMenuController createController(User user) {
         if (user instanceof Student) {
             return new StudentMenuController((Student) user, applicationService,
-                internshipRepo, outputService, scanner);
+                    internshipRepo, outputService, authService, scanner);
         } else if (user instanceof CompanyRepresentative) {
             return new CompanyRepMenuController((CompanyRepresentative) user,
-                internshipRepo, applicationService, outputService, scanner);
+                    internshipRepo, applicationService, outputService, authService, scanner);
         } else if (user instanceof CareerCenterStaff) {
             return new StaffMenuController((CareerCenterStaff) user, approvalService,
-                companyRepo, studentRepo, internshipRepo, outputService, scanner);
+                    companyRepo, studentRepo, internshipRepo, outputService, authService, scanner);
         }
         throw new IllegalArgumentException("Unknown user type");
     }

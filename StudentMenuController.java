@@ -1,22 +1,27 @@
 import java.util.*;
 
-// Single Responsibility - handles student menu logic only
 public class StudentMenuController implements IMenuController {
     private final Student currentStudent;
     private final IApplicationService applicationService;
     private final IInternshipRepository internshipRepo;
     private final IOutputService outputService;
+    private final IAuthenticationService authService;
     private final Scanner scanner;
 
+    private String filterLevel = "all";
+    private String sortOrder = "alphabetical";
+
     public StudentMenuController(Student student,
-                                IApplicationService applicationService,
-                                IInternshipRepository internshipRepo,
-                                IOutputService outputService,
-                                Scanner scanner) {
+                                 IApplicationService applicationService,
+                                 IInternshipRepository internshipRepo,
+                                 IOutputService outputService,
+                                 IAuthenticationService authService,
+                                 Scanner scanner) {
         this.currentStudent = student;
         this.applicationService = applicationService;
         this.internshipRepo = internshipRepo;
         this.outputService = outputService;
+        this.authService = authService;
         this.scanner = scanner;
     }
 
@@ -24,11 +29,13 @@ public class StudentMenuController implements IMenuController {
     public void displayMenu() {
         outputService.displayMessage("\n===== Student Menu =====");
         outputService.displayMessage("1. View Available Internships");
-        outputService.displayMessage("2. Apply for Internship");
-        outputService.displayMessage("3. View My Applications");
-        outputService.displayMessage("4. Withdraw Application");
-        outputService.displayMessage("5. Toggle Profile Visibility");
-        outputService.displayMessage("6. Logout");
+        outputService.displayMessage("2. Filter Internships");
+        outputService.displayMessage("3. Apply for Internship");
+        outputService.displayMessage("4. View My Applications");
+        outputService.displayMessage("5. Confirm Placement");
+        outputService.displayMessage("6. Withdraw Application");
+        outputService.displayMessage("7. Change Password");
+        outputService.displayMessage("8. Logout");
     }
 
     @Override
@@ -38,18 +45,24 @@ public class StudentMenuController implements IMenuController {
                 viewAvailableInternships();
                 break;
             case "2":
-                applyForInternship();
+                filterInternships();
                 break;
             case "3":
-                viewMyApplications();
+                applyForInternship();
                 break;
             case "4":
-                withdrawApplication();
+                viewMyApplications();
                 break;
             case "5":
-                toggleVisibility();
+                confirmPlacement();
                 break;
             case "6":
+                withdrawApplication();
+                break;
+            case "7":
+                changePassword();
+                break;
+            case "8":
                 outputService.displayMessage("Logging out...");
                 break;
             default:
@@ -57,32 +70,240 @@ public class StudentMenuController implements IMenuController {
         }
     }
 
-    private void viewAvailableInternships() {
-        List<Internship> internships = internshipRepo.getAll();
-        List<Internship> available = new ArrayList<>();
+    private void confirmPlacement() {
+        if (currentStudent.getAcceptedPlacementID() != null) {
+            outputService.displayMessage("You have already confirmed your placement: " +
+                    currentStudent.getAcceptedPlacementID());
 
-        for (Internship i : internships) {
-            if ("Approved".equals(i.getStatus()) && i.isVisible() && i.hasAvailableSlots()) {
-                available.add(i);
+            Internship confirmedInternship = internshipRepo.getById(currentStudent.getAcceptedPlacementID());
+            if (confirmedInternship != null) {
+                outputService.displayMessage(String.format("Company: %s\nTitle: %s",
+                        confirmedInternship.getCompanyName(), confirmedInternship.getTitle()));
+            }
+            return;
+        }
+
+        List<String> appIDs = currentStudent.getApplicationIDs();
+        List<String> approvedInternships = new ArrayList<>();
+
+        for (String id : appIDs) {
+            Internship i = internshipRepo.getById(id);
+            if (i != null && "Approved".equals(i.getStudentStatus(currentStudent.getUserID()))) {
+                approvedInternships.add(id);
             }
         }
 
-        if (available.isEmpty()) {
+        if (approvedInternships.isEmpty()) {
+            outputService.displayMessage("You have no approved internships to confirm yet.");
+            outputService.displayMessage("Please wait for companies to review your applications.");
+            return;
+        }
+
+        outputService.displayMessage("\n===== Your Approved Internships =====");
+        outputService.displayMessage("Choose one to confirm as your final placement:");
+        outputService.displayMessage("");
+
+        for (String id : approvedInternships) {
+            Internship i = internshipRepo.getById(id);
+            outputService.displayMessage(String.format("%s - %s\n  Company: %s | Level: %s\n  Slots: %d/%d\n",
+                    id, i.getTitle(), i.getCompanyName(), i.getLevel(),
+                    i.getConfirmedSlots(), i.getTotalSlots()));
+        }
+
+        outputService.displayMessage("Enter Internship ID to confirm as your placement (or 'back'):");
+        String internshipID = scanner.nextLine();
+
+        if ("back".equals(internshipID)) {
+            return;
+        }
+
+        if (!approvedInternships.contains(internshipID)) {
+            outputService.displayError("Invalid choice. Please select from your approved internships.");
+            return;
+        }
+
+        currentStudent.setAcceptedPlacement(internshipID);
+        outputService.displayMessage("\n==============================================");
+        outputService.displayMessage("✓ Placement Confirmed Successfully!");
+        outputService.displayMessage("==============================================");
+
+        Internship confirmed = internshipRepo.getById(internshipID);
+        if (confirmed != null) {
+            outputService.displayMessage(String.format("\nYour Confirmed Internship:\nTitle: %s\nCompany: %s\nLevel: %s",
+                    confirmed.getTitle(), confirmed.getCompanyName(), confirmed.getLevel()));
+        }
+
+        outputService.displayMessage("\nAll other applications have been automatically withdrawn.");
+    }
+
+
+    private void viewAvailableInternships() {
+        List<Internship> allInternships = internshipRepo.getAll();
+        List<Internship> filtered = new ArrayList<>();
+
+        for (Internship i : allInternships) {
+            if (!isInternshipAvailableForStudent(i)) {
+                continue;
+            }
+
+            boolean matches = true;
+
+            if (!filterLevel.equalsIgnoreCase("all") && !i.getLevel().equalsIgnoreCase(filterLevel)) {
+                matches = false;
+            }
+
+            if (matches) {
+                filtered.add(i);
+            }
+        }
+
+        if (sortOrder.equals("alphabetical")) {
+            filtered.sort(new AlphabeticalSorter());
+        } else {
+            filtered.sort(new ClosingDateSorter());
+        }
+
+        if (filtered.isEmpty()) {
             outputService.displayMessage("No internships available.");
             return;
         }
 
-        for (Internship i : available) {
-            outputService.displayMessage(String.format("%s - %s (%s) [%s]",
-                i.getInternshipID(), i.getTitle(), i.getCompanyName(), i.getLevel()));
+        outputService.displayMessage("\n===== Available Internships =====");
+        outputService.displayMessage("Active Filters: Level=" + filterLevel + " | Sort=" + sortOrder);
+        outputService.displayMessage("");
+        displayInternshipList(filtered);
+    }
+
+    private void filterInternships() {
+        while (true) {
+            outputService.displayMessage("\n===== Filter Settings =====");
+            outputService.displayMessage("Current Filters:");
+            outputService.displayMessage("  Level: " + filterLevel);
+            outputService.displayMessage("  Sort: " + sortOrder);
+            outputService.displayMessage("");
+            outputService.displayMessage("1. Change Level Filter");
+            outputService.displayMessage("2. Change Sort Order");
+            outputService.displayMessage("3. Reset All Filters");
+            outputService.displayMessage("4. Back");
+
+            String choice = scanner.nextLine();
+
+            switch (choice) {
+                case "1":
+                    outputService.displayMessage("Enter level (Basic/Intermediate/Advanced/all):");
+                    filterLevel = scanner.nextLine().trim();
+                    if (filterLevel.isEmpty()) filterLevel = "all";
+                    break;
+                case "2":
+                    outputService.displayMessage("Sort by:");
+                    outputService.displayMessage("1. Alphabetical (Title)");
+                    outputService.displayMessage("2. Closing Date");
+                    String sortChoice = scanner.nextLine();
+                    sortOrder = "1".equals(sortChoice) ? "alphabetical" : "closing_date";
+                    break;
+                case "3":
+                    filterLevel = "all";
+                    sortOrder = "alphabetical";
+                    outputService.displayMessage("All filters reset to default.");
+                    break;
+                case "4":
+                    return;
+                default:
+                    outputService.displayError("Invalid choice!");
+            }
+        }
+    }
+
+    private boolean isInternshipAvailableForStudent(Internship internship) {
+        if (!"Approved".equals(internship.getStatus())) {
+            return false;
+        }
+
+        if (!internship.isVisible()) {
+            return false;
+        }
+
+        if (!internship.hasAvailableSlots()) {
+            return false;
+        }
+
+        if (!internship.getPreferredMajor().equalsIgnoreCase(currentStudent.getMajor()) &&
+                !internship.getPreferredMajor().equalsIgnoreCase("all")) {
+            return false;
+        }
+
+        int year = currentStudent.getYearOfStudy();
+        String level = internship.getLevel();
+
+        if (year <= 2 && !level.equalsIgnoreCase("Basic")) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void displayInternshipList(List<Internship> internships) {
+        for (Internship i : internships) {
+            outputService.displayMessage(String.format(
+                    "%s - %s\n  Company: %s\n  Level: %s | Major: %s\n  Slots: %d/%d | Closing: %s\n",
+                    i.getInternshipID(),
+                    i.getTitle(),
+                    i.getCompanyName(),
+                    i.getLevel(),
+                    i.getPreferredMajor(),
+                    i.getConfirmedSlots(),
+                    i.getTotalSlots(),
+                    i.getClosingDate()
+            ));
         }
     }
 
     private void applyForInternship() {
-        outputService.displayMessage("Enter Internship ID:");
+        List<Internship> allInternships = internshipRepo.getAll();
+        List<Internship> filtered = new ArrayList<>();
+
+        for (Internship i : allInternships) {
+            if (!isInternshipAvailableForStudent(i)) {
+                continue;
+            }
+
+            boolean matches = true;
+
+            if (!filterLevel.equalsIgnoreCase("all") && !i.getLevel().equalsIgnoreCase(filterLevel)) {
+                matches = false;
+            }
+
+            if (matches) {
+                filtered.add(i);
+            }
+        }
+
+        if (sortOrder.equals("alphabetical")) {
+            filtered.sort(new AlphabeticalSorter());
+        } else {
+            filtered.sort(new ClosingDateSorter());
+        }
+
+        if (filtered.isEmpty()) {
+            outputService.displayMessage("No internships available to apply.");
+            return;
+        }
+
+        outputService.displayMessage("\n===== Available Internships =====");
+        outputService.displayMessage("Active Filters: Level=" + filterLevel + " | Sort=" + sortOrder);
+        outputService.displayMessage("");
+        displayInternshipList(filtered);
+
+        outputService.displayMessage("Enter Internship ID to apply (or 'back'):");
         String internshipID = scanner.nextLine();
+
+        if ("back".equals(internshipID)) {
+            return;
+        }
+
         applicationService.applyForInternship(currentStudent.getUserID(), internshipID);
     }
+
 
     private void viewMyApplications() {
         List<String> appIDs = currentStudent.getApplicationIDs();
@@ -96,7 +317,7 @@ public class StudentMenuController implements IMenuController {
             if (i != null) {
                 String status = i.getStudentStatus(currentStudent.getUserID());
                 outputService.displayMessage(String.format("%s - %s [Status: %s]",
-                    id, i.getTitle(), status));
+                        id, i.getTitle(), status));
             }
         }
     }
@@ -107,9 +328,20 @@ public class StudentMenuController implements IMenuController {
         applicationService.withdrawApplication(currentStudent.getUserID(), internshipID);
     }
 
-    private void toggleVisibility() {
-        currentStudent.setVisible(!currentStudent.isVisible());
-        outputService.displayMessage("Profile visibility: " + 
-            (currentStudent.isVisible() ? "ON" : "OFF"));
+    private void changePassword() {
+        outputService.displayMessage("Enter current password:");
+        String oldPassword = scanner.nextLine();
+        outputService.displayMessage("Enter new password:");
+        String newPassword = scanner.nextLine();
+        outputService.displayMessage("Confirm new password:");
+        String confirmPassword = scanner.nextLine();
+
+        if (!newPassword.equals(confirmPassword)) {
+            outputService.displayError("Passwords do not match!");
+            return;
+        }
+
+        ((AuthenticationService) authService).changePassword(
+                currentStudent.getUserID(), oldPassword, newPassword);
     }
 }

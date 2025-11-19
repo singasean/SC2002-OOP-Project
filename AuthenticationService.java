@@ -1,15 +1,21 @@
 import java.util.*;
 
-// Single Responsibility - handles only authentication logic
 public class AuthenticationService implements IAuthenticationService {
-    private final Map<String, String> credentials; // userID -> password
+    private final Map<String, String> credentials;
+    private final Map<String, String> emailToUserID;
     private final Set<String> loggedInUsers;
     private final IOutputService outputService;
+    private IUserRepository<CompanyRepresentative> companyRepo;
 
     public AuthenticationService(IOutputService outputService) {
         this.credentials = new HashMap<>();
+        this.emailToUserID = new HashMap<>();
         this.loggedInUsers = new HashSet<>();
         this.outputService = outputService;
+    }
+
+    public void setCompanyRepository(IUserRepository<CompanyRepresentative> companyRepo) {
+        this.companyRepo = companyRepo;
     }
 
     @Override
@@ -17,14 +23,37 @@ public class AuthenticationService implements IAuthenticationService {
         credentials.put(userID, password);
     }
 
+    public void registerEmail(String email, String userID) {
+        emailToUserID.put(email.toLowerCase(), userID);
+    }
 
     @Override
-    public boolean authenticate(String userID, String password) {
+    public boolean authenticate(String userIDOrEmail, String password) {
+        String userID = userIDOrEmail;
+
+        if (userIDOrEmail.contains("@")) {
+            userID = emailToUserID.get(userIDOrEmail.toLowerCase());
+            if (userID == null) {
+                outputService.displayMessage("Login failed! Invalid credentials.");
+                return false;
+            }
+        }
+
         if (credentials.containsKey(userID) && credentials.get(userID).equals(password)) {
+
+            if (userID.startsWith("CR") && companyRepo != null) {
+                CompanyRepresentative rep = companyRepo.getById(userID);
+                if (rep != null && !rep.isApproved()) {
+                    outputService.displayError("Your account is pending approval by Career Center Staff.");
+                    return false;
+                }
+            }
+
             loggedInUsers.add(userID);
             outputService.displayMessage("Login successful!");
             return true;
         }
+
         outputService.displayMessage("Login failed! Invalid credentials.");
         return false;
     }
@@ -51,5 +80,9 @@ public class AuthenticationService implements IAuthenticationService {
         }
         outputService.displayMessage("Password change failed!");
         return false;
+    }
+
+    public String getUserIDFromEmail(String email) {
+        return emailToUserID.get(email.toLowerCase());
     }
 }
