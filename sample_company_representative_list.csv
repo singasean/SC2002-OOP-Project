@@ -1,3 +1,2 @@
 CompanyRepID,Name,CompanyName,Department,Position,Email,Status
-CR2,test1,test1,test1,test1,test1@gmail.com,Rejected
-CR1,test,test,test,test,test@gmail.com,Approved
+CR1,Sean,GOOGLE,Computing,CEO,sean@gmail.com,Approved
