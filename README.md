@@ -13,7 +13,7 @@ A Java console application for managing student internships. Students can browse
 ## How to Run
 1. **Clone the repository**
 2. **Compile the code**
-3. **Run the application**
+3. **Run the application from "main.java"**
 
 ## Sample Login
 **Student**
