@@ -16,7 +16,7 @@ A Java console application for managing student internships. Students can browse
 3. **Run the application from "Main.java"**
 4. **Troubleshooting CSV Files**
    
-If the program is unable to read the CSV files, redownload the 3 CSV files:
+If the program is unable to read the CSV files, redownload the 3 CSV files from NTUlearn:
 - `sample_company_representative_list.csv`
 - `sample_staff_list.csv`
 - `sample_student_list.csv`
