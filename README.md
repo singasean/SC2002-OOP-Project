@@ -13,7 +13,14 @@ A Java console application for managing student internships. Students can browse
 ## How to Run
 1. **Clone the repository**
 2. **Compile the code**
-3. **Run the application from "main.java"**
+3. **Run the application from "Main.java"**
+4. **Troubleshooting CSV Files**
+If the program is unable to read the CSV files, redownload the 3 CSV files:
+- `sample_company_representative_list.csv`
+- `sample_staff_list.csv`
+- `sample_student_list.csv`
+
+Place them in the project root folder and rerun the code.
 
 ## Sample Login
 **Student**
