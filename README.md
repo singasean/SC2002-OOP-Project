@@ -15,6 +15,7 @@ A Java console application for managing student internships. Students can browse
 2. **Compile the code**
 3. **Run the application from "Main.java"**
 4. **Troubleshooting CSV Files**
+   
 If the program is unable to read the CSV files, redownload the 3 CSV files:
 - `sample_company_representative_list.csv`
 - `sample_staff_list.csv`
