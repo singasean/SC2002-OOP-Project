@@ -1,5 +1,12 @@
 import java.util.*;
-
+/**
+ * Concrete implementation of the Generic User Repository.
+ * <p>
+ * Acts as an <b>In-Memory Database</b> storing user objects in an {@code ArrayList}.
+ * </p>
+ *
+ * @param <T> The specific type of User (Student, CompanyRepresentative, etc.).
+ */
 // Single Responsibility - manages user storage only
 public class UserRepository<T extends User> implements IUserRepository<T> {
     private final Map<String, T> users;

@@ -1,5 +1,16 @@
 import java.util.*;
-
+/**
+ * Concrete implementation of the Authentication Service.
+ * <p>
+ * <b>Security Note:</b> This class separates security credentials (passwords) from the
+ * User Profile objects stored in {@link UserRepository}. This ensures that a compromise
+ * of the user list does not automatically compromise user passwords.
+ * </p>
+ * <p>
+ * It also enforces <b>Role-Based Access Control</b> at the login stage, preventing
+ * "Pending" or "Rejected" Company Representatives from accessing the system.
+ * </p>
+ */
 public class AuthenticationService implements IAuthenticationService {
     private final Map<String, String> credentials;
     private final Map<String, String> emailToUserID;
@@ -26,7 +37,13 @@ public class AuthenticationService implements IAuthenticationService {
     public void registerEmail(String email, String userID) {
         emailToUserID.put(email.toLowerCase(), userID);
     }
-
+    /**
+     * Authenticates a user against the stored credentials.
+     *
+     * @param userIDOrEmail The user's ID or registered email address.
+     * @param password      The provided password.
+     * @return {@code true} if credentials are valid AND the account is active/approved.
+     */
     @Override
     public boolean authenticate(String userIDOrEmail, String password) {
         String userID = userIDOrEmail;
@@ -81,7 +98,14 @@ public class AuthenticationService implements IAuthenticationService {
     public boolean isLoggedIn(String userID) {
         return loggedInUsers.contains(userID);
     }
-
+    /**
+     * Updates the user's password.
+     *
+     * @param userID      The ID of the user.
+     * @param oldPassword The current password (for verification).
+     * @param newPassword The new desired password.
+     * @return {@code true} if the old password matched and update was successful.
+     */
     public boolean changePassword(String userID, String oldPassword, String newPassword) {
         if (credentials.containsKey(userID) && credentials.get(userID).equals(oldPassword)) {
             credentials.put(userID, newPassword);

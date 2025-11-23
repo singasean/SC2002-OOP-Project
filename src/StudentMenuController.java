@@ -1,5 +1,16 @@
 import java.util.*;
-
+/**
+ * Controller class that manages the User Interface for Students.
+ * <p>
+ * This class acts as a <b>Boundary</b> between the User (via Console) and the System Logic.
+ * It interprets user input commands (e.g., "Apply", "Filter") and delegates the actual
+ * processing to {@link ApplicationService} or {@link InternshipRepository}.
+ * </p>
+ * <p>
+ * It maintains the state of the user's current session, such as their active
+ * filter preferences (Level) and sorting preferences (Alphabetical vs. Date).
+ * </p>
+ */
 public class StudentMenuController implements IMenuController {
     private final Student currentStudent;
     private final IApplicationService applicationService;
@@ -10,7 +21,16 @@ public class StudentMenuController implements IMenuController {
 
     private String filterLevel = "all";
     private String sortOrder = "alphabetical";
-
+    /**
+     * Constructs the StudentMenuController with all necessary dependencies.
+     *
+     * @param student            The currently logged-in student.
+     * @param applicationService Service to handle application logic.
+     * @param internshipRepo     Repository to read internship data.
+     * @param outputService      Service to handle console output.
+     * @param authService        Service to handle password changes.
+     * @param scanner            Scanner for reading user input.
+     */
     public StudentMenuController(Student student,
                                  IApplicationService applicationService,
                                  IInternshipRepository internshipRepo,
@@ -24,7 +44,9 @@ public class StudentMenuController implements IMenuController {
         this.authService = authService;
         this.scanner = scanner;
     }
-
+    /**
+     * Displays the main dashboard options for the student.
+     */
     @Override
     public void displayMenu() {
         outputService.displayMessage("\n===== Student Menu =====");
@@ -37,7 +59,11 @@ public class StudentMenuController implements IMenuController {
         outputService.displayMessage("7. Change Password");
         outputService.displayMessage("8. Logout");
     }
-
+    /**
+     * Processes the user's menu selection.
+     *
+     * @param input The raw string input from the user.
+     */
     @Override
     public void handleInput(String input) {
         switch (input) {
@@ -68,7 +94,11 @@ public class StudentMenuController implements IMenuController {
                 outputService.displayError("Invalid choice!");
         }
     }
-
+    /**
+     * Handles the confirmation of an offer.
+     * Allows the student to pick one "Approved" application to finalize.
+     * Automatically withdraws all other pending/approved applications.
+     */
     private void confirmPlacement() {
         String acceptedID = currentStudent.getAcceptedPlacementID();
         if (acceptedID != null && !acceptedID.isEmpty()) {
@@ -152,7 +182,10 @@ public class StudentMenuController implements IMenuController {
 
         outputService.displayMessage("\nAll other applications have been automatically withdrawn.");
     }
-
+    /**
+     * Handles the withdrawal process.
+     * Supports withdrawing from Pending, Approved, and Confirmed states.
+     */
     private void withdrawApplication() {
         outputService.displayMessage("Enter Internship ID to withdraw (or 'back'):");
         String internshipID = scanner.nextLine().trim();
@@ -222,7 +255,9 @@ public class StudentMenuController implements IMenuController {
         outputService.displayMessage("");
         displayInternshipList(filtered);
     }
-
+    /**
+     * Sub-menu for adjusting filter and sort settings.
+     */
     private void filterInternships() {
         while (true) {
             outputService.displayMessage("\n===== Filter Settings =====");
@@ -262,7 +297,9 @@ public class StudentMenuController implements IMenuController {
             }
         }
     }
-
+    /**
+     * Checks strict business rules for visibility.
+     */
     private boolean isInternshipAvailableForStudent(Internship internship) {
         if (!"Approved".equals(internship.getStatus())) {
             return false;
@@ -306,7 +343,9 @@ public class StudentMenuController implements IMenuController {
             ));
         }
     }
-
+    /**
+     * Handles the flow for applying to a new internship.
+     */
     private void applyForInternship() {
         List<Internship> allInternships = internshipRepo.getAll();
         List<Internship> filtered = new ArrayList<>();
@@ -352,7 +391,9 @@ public class StudentMenuController implements IMenuController {
 
         applicationService.applyForInternship(currentStudent.getUserID(), internshipID);
     }
-
+    /**
+     * Displays the status of all applications made by the student.
+     */
     private void viewMyApplications() {
         List<String> appIDs = currentStudent.getApplicationIDs();
         if (appIDs.isEmpty()) {

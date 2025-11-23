@@ -1,5 +1,13 @@
 import java.util.*;
 
+/**
+ * Represents a specific Internship job posting.
+ * <p>
+ * This is a core entity class that acts as a <b>State Machine</b> for the application process.
+ * It tracks not only the job details (slots, dates) but also the specific status of
+ * every student who has applied via the {@code statusByStudent} map.
+ * </p>
+ */
 public class Internship {
     private String internshipID;
     private String title;
@@ -16,7 +24,10 @@ public class Internship {
     private boolean isVisible = true;
     private final Map<String, String> statusByStudent;
     private final Map<String, String> withdrawalReasons;
-
+    /**
+     * Constructs a new Internship posting.
+     * Initial status is "Pending" (awaiting Staff approval).
+     */
     public Internship(String internshipID, String title, String description, String level,
                       String preferredMajor, String openingDate, String closingDate,
                       int totalSlots, String companyName, String representativeID) {
@@ -57,11 +68,18 @@ public class Internship {
     public void setVisible(boolean visible) {
         this.isVisible = visible;
     }
-
+    /**
+     * Checks if there are vacancy slots available.
+     *
+     * @return {@code true} if confirmed slots < total slots.
+     */
     public boolean hasAvailableSlots() {
         return confirmedSlots < totalSlots;
     }
-
+    /**
+     * Increments the count of confirmed slots.
+     * Updates the status to "Filled" if the limit is reached.
+     */
     public void incrementConfirmedSlots() {
         if (hasAvailableSlots()) {
             confirmedSlots++;
@@ -79,7 +97,12 @@ public class Internship {
             }
         }
     }
-
+    /**
+     * Updates the application status for a specific student.
+     *
+     * @param studentID The ID of the student.
+     * @param status    The new status (e.g., "Pending", "Approved", "Withdrawn").
+     */
     public void setStudentStatus(String studentID, String status) {
         statusByStudent.put(studentID, status);
     }
@@ -91,7 +114,13 @@ public class Internship {
     public Map<String, String> getAllStudentStatuses() {
         return new HashMap<>(statusByStudent);
     }
-
+    /**
+     * Initiates a withdrawal request for a student.
+     * Stores the reason for withdrawal and updates status to "Pending Withdrawal".
+     *
+     * @param studentID The ID of the requesting student.
+     * @param reason    The reason provided for withdrawal.
+     */
     public void requestWithdrawal(String studentID, String reason) {
         setStudentStatus(studentID, "Pending Withdrawal");
         withdrawalReasons.put(studentID, reason != null ? reason : "No reason provided");

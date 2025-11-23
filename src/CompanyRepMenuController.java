@@ -1,5 +1,21 @@
 import java.util.*;
-
+/**
+ * Controller class that manages the User Interface for Company Representatives.
+ * <p>
+ * This class acts as the <b>Boundary Layer</b> for external corporate users.
+ * It provides the workflow for:
+ * <ul>
+ * <li>Creating new Internship entities (Content Creation).</li>
+ * <li>Managing the visibility and status of existing postings.</li>
+ * <li>Reviewing and processing student applications (Hiring Workflow).</li>
+ * </ul>
+ * </p>
+ * <p>
+ * <b>Dependency Injection:</b> Like other controllers, it relies on abstract service interfaces
+ * ({@link IApplicationService}, {@link IInternshipRepository}) rather than concrete implementations,
+ * ensuring loose coupling.
+ * </p>
+ */
 public class CompanyRepMenuController implements IMenuController {
     private final CompanyRepresentative currentRep;
     private final IInternshipRepository internshipRepo;
@@ -12,7 +28,16 @@ public class CompanyRepMenuController implements IMenuController {
     private String filterMajor = "all";
     private String filterLevel = "all";
     private String sortOrder = "alphabetical";
-
+    /**
+     * Constructs the CompanyRepMenuController.
+     *
+     * @param rep                The currently logged-in Company Representative.
+     * @param internshipRepo     Repository for storing/retrieving internships.
+     * @param applicationService Service for handling student application logic (Approve/Reject).
+     * @param outputService      Service for console output.
+     * @param authService        Service for password management.
+     * @param scanner            Scanner for user input.
+     */
     public CompanyRepMenuController(CompanyRepresentative rep,
                                     IInternshipRepository internshipRepo,
                                     IApplicationService applicationService,
@@ -26,7 +51,9 @@ public class CompanyRepMenuController implements IMenuController {
         this.authService = authService;
         this.scanner = scanner;
     }
-
+    /**
+     * Displays the dashboard options for the company representative.
+     */
     @Override
     public void displayMenu() {
         outputService.displayMessage("\n===== Company Representative Menu =====");
@@ -38,7 +65,11 @@ public class CompanyRepMenuController implements IMenuController {
         outputService.displayMessage("6. Change Password");
         outputService.displayMessage("7. Logout");
     }
-
+    /**
+     * Processes the user's menu selection.
+     *
+     * @param input The raw input string.
+     */
     @Override
     public void handleInput(String input) {
         if (!currentRep.isApproved()) {
@@ -72,7 +103,10 @@ public class CompanyRepMenuController implements IMenuController {
                 outputService.displayError("Invalid choice!");
         }
     }
-
+    /**
+     * Displays internships owned by this representative.
+     * Applies local filters (Status) and Sorting strategies.
+     */
     private void viewMyInternships() {
         List<Internship> myInternships = internshipRepo.getByRepresentativeID(currentRep.getUserID());
 
@@ -176,7 +210,25 @@ public class CompanyRepMenuController implements IMenuController {
             }
         }
     }
-
+    /**
+     * Workflow for creating a new Internship.
+     * <p>
+     * <b>Deep Dive into Logic:</b>
+     * This method acts as a "Gatekeeper". It prevents invalid data from ever reaching
+     * the Entity constructors.
+     * <ol>
+     * <li><b>Pre-Check:</b> It first queries the Entity {@code currentRep.canPostInternship()}
+     * to enforce business limits (e.g., Max 5 active posts).</li>
+     * <li><b>Sanitization:</b> It replaces commas in descriptions with semicolons. This is
+     * crucial because our {@link CSVDataSaver} uses commas as delimiters. If we didn't do this,
+     * a description like "Java, Python" would break the CSV structure.</li>
+     * <li><b>Input Loops:</b> It uses {@code while(true)} loops for Dates and Slots. This pattern
+     * traps the user until they provide valid input, rather than crashing or restarting the form.</li>
+     * <li><b>Cross-Field Validation:</b> The date check {@code isClosingAfterOpening} ensures
+     * logical consistency (Time cannot flow backwards).</li>
+     * </ol>
+     * </p>
+     */
     private void postInternship() {
         if (!currentRep.canPostInternship()) {
             outputService.displayError("Cannot post more internships (limit: 5)");
@@ -291,7 +343,25 @@ public class CompanyRepMenuController implements IMenuController {
         internship.setVisible(!internship.isVisible());
         outputService.displayMessage("Internship visibility: " + (internship.isVisible() ? "ON" : "OFF"));
     }
-
+    /**
+     * Logic for Reps to review student applications.
+     * <p>
+     * <b>Deep Dive into Logic:</b>
+     * This method solves the problem of "Needle in a Haystack".
+     * <br>
+     * The Repository contains <i>all</i> internships.
+     * This Rep only cares about <i>their</i> internships.
+     * Furthermore, they only care about internships that have <i>Pending</i> applicants.
+     * <br>
+     * The logic flows in funnel shape:
+     * <ol>
+     * <li><b>Get All Owned:</b> {@code internshipRepo.getByRepresentativeID}</li>
+     * <li><b>Filter for Activity:</b> Iterate and check {@code getAllStudentStatuses()} for "Pending".</li>
+     * <li><b>Select Context:</b> User picks one Internship.</li>
+     * <li><b>Filter for Student:</b> Show only the students in that specific internship who are "Pending".</li>
+     * </ol>
+     * </p>
+     */
     private void reviewApplications() {
         List<Internship> myInternships = internshipRepo.getByRepresentativeID(currentRep.getUserID());
 
@@ -379,7 +449,22 @@ public class CompanyRepMenuController implements IMenuController {
         ((AuthenticationService) authService).changePassword(
                 currentRep.getUserID(), oldPassword, newPassword);
     }
-
+    /**
+     * Helper utility to validate date strings.
+     * <p>
+     * <b>How it works:</b>
+     * It uses a Regular Expression (Regex) {@code \\d{2}-\\d{2}-\\d{4}} to enforce structure.
+     * <ul>
+     * <li>{@code \\d{2}}: Exactly two digits (Day)</li>
+     * <li>{@code -}: Literal hyphen</li>
+     * <li>{@code \\d{4}}: Exactly four digits (Year)</li>
+     * </ul>
+     * This prevents users from entering "Jan 1st" or "2025/12/25" which would break sorting logic.
+     * </p>
+     *
+     * @param date The raw input string.
+     * @return A user-friendly error message string if invalid, or {@code null} if valid.
+     */
     private String validateDate(String date) {
         if (date == null || date.isEmpty()) {
             return "Date cannot be empty!";
@@ -426,7 +511,24 @@ public class CompanyRepMenuController implements IMenuController {
 
         return null;
     }
-
+    /**
+     * Logic to compare two date strings chronologically.
+     * <p>
+     * <b>The Problem:</b> String comparison of "25-12-2023" vs "01-01-2024" yields wrong results
+     * because "2" > "0".
+     * <br>
+     * <b>The Solution:</b> We must split the components and compare hierarchically:
+     * <ol>
+     * <li><b>Year:</b> The most significant unit. If closing year > opening year, return true.</li>
+     * <li><b>Month:</b> If years are equal, check months.</li>
+     * <li><b>Day:</b> If months are equal, check days.</li>
+     * </ol>
+     * </p>
+     *
+     * @param opening The opening date string (DD-MM-YYYY).
+     * @param closing The closing date string (DD-MM-YYYY).
+     * @return {@code true} if closing date is chronologically after opening date.
+     */
     private boolean isClosingAfterOpening(String opening, String closing) {
         String[] openParts = opening.split("-");
         String[] closeParts = closing.split("-");

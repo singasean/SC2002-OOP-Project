@@ -1,5 +1,12 @@
 import java.util.*;
-
+/**
+ * Factory class for creating User Interface Controllers.
+ * <p>
+ * This class implements the <b>Factory Design Pattern</b>. It encapsulates the complex
+ * logic of dependency injection, assembling the correct {@link IMenuController} implementation
+ * (Student, Staff, or Rep) based on the runtime type of the logged-in {@link User}.
+ * </p>
+ */
 public class MenuControllerFactory {
     private final IApplicationService applicationService;
     private final IApprovalService approvalService;
@@ -10,7 +17,13 @@ public class MenuControllerFactory {
     private final IOutputService outputService;
     private final IAuthenticationService authService;
     private final Scanner scanner;
-
+    /**
+     * Creates and configures the appropriate menu controller for the given user.
+     *
+     * @param user The logged-in user object.
+     * @return A fully configured {@link IMenuController} specific to the user's role.
+     * @throws IllegalArgumentException if the user type is unknown.
+     */
     public MenuControllerFactory(IApplicationService applicationService,
                                  IApprovalService approvalService,
                                  IUserRepository<Student> studentRepo,

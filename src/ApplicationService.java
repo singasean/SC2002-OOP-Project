@@ -1,8 +1,26 @@
+/**
+ * Service class that encapsulates the core business logic for Internship Applications.
+ * <p>
+ * This class acts as the <b>Control Layer</b> for student-internship interactions.
+ * It enforces all business rules regarding eligibility, such as:
+ * <ul>
+ * <li>Students typically must be Year 3 or above (unless applying for Basic level).</li>
+ * <li>Students cannot exceed the maximum application limit.</li>
+ * <li>Students cannot apply if they have already confirmed a placement.</li>
+ * </ul>
+ * </p>
+ */
 public class ApplicationService implements IApplicationService {
     private final IUserRepository<Student> studentRepo;
     private final IInternshipRepository internshipRepo;
     private final IOutputService outputService;
-
+    /**
+     * Constructs the ApplicationService with necessary dependencies.
+     *
+     * @param studentRepo    Repository to access student data.
+     * @param internshipRepo Repository to access internship data.
+     * @param outputService  Service to display messages to the user.
+     */
     public ApplicationService(IUserRepository<Student> studentRepo,
                               IInternshipRepository internshipRepo,
                               IOutputService outputService) {
@@ -10,7 +28,22 @@ public class ApplicationService implements IApplicationService {
         this.internshipRepo = internshipRepo;
         this.outputService = outputService;
     }
-
+    /**
+     * Processes a student's application for an internship.
+     * <p>
+     * <b>Business Rules:</b>
+     * 1. Student and Internship must exist.
+     * 2. Student must not have reached application limit (3) or already accepted an offer.
+     * 3. Internship must be "Approved" and visible.
+     * 4. Internship must have available slots.
+     * 5. Student's major must match (or be "All").
+     * 6. Year 1 & 2 students can only apply for "Basic" level.
+     * </p>
+     *
+     * @param studentID    The applicant's ID.
+     * @param internshipID The target internship ID.
+     * @return {@code true} if the application was successfully submitted.
+     */
     @Override
     public boolean applyForInternship(String studentID, String internshipID) {
         Student student = studentRepo.getById(studentID);
@@ -55,7 +88,18 @@ public class ApplicationService implements IApplicationService {
         outputService.displayMessage("Application submitted successfully!");
         return true;
     }
-
+    /**
+     * Immediately withdraws a student's application.
+     * <p>
+     * <b>Note:</b> This is typically used for cleanup (e.g., auto-withdrawing other applications
+     * after confirming a placement). For user-initiated withdrawals from active placements,
+     * use {@link #requestWithdrawal}.
+     * </p>
+     *
+     * @param studentID    The student ID.
+     * @param internshipID The internship ID.
+     * @return {@code true} if successful.
+     */
     @Override
     public boolean withdrawApplication(String studentID, String internshipID) {
         Student student = studentRepo.getById(studentID);
@@ -70,7 +114,13 @@ public class ApplicationService implements IApplicationService {
         outputService.displayMessage("Application withdrawn successfully!");
         return true;
     }
-
+    /**
+     * Approves a specific student's application (Used by Company Rep).
+     *
+     * @param internshipID The internship ID.
+     * @param studentID    The student to approve.
+     * @return {@code true} if approved.
+     */
     @Override
     public boolean approveApplication(String internshipID, String studentID) {
         Student student = studentRepo.getById(studentID);
@@ -89,7 +139,13 @@ public class ApplicationService implements IApplicationService {
         outputService.displayMessage("Application accepted!");
         return true;
     }
-
+    /**
+     * Rejects a specific student's application (Used by Company Rep).
+     *
+     * @param internshipID The internship ID.
+     * @param studentID    The student to reject.
+     * @return {@code true} if rejected.
+     */
     @Override
     public boolean rejectApplication(String internshipID, String studentID) {
         Internship internship = internshipRepo.getById(internshipID);
@@ -102,7 +158,18 @@ public class ApplicationService implements IApplicationService {
         outputService.displayMessage("Application rejected.");
         return true;
     }
-
+    /**
+     * Submits a withdrawal request for a student.
+     * <p>
+     * If the student is already "Confirmed" or "Approved", this request requires
+     * Staff approval and will set the status to "Pending Withdrawal".
+     * </p>
+     *
+     * @param studentID    The student requesting withdrawal.
+     * @param internshipID The internship ID.
+     * @param reason       The reason for withdrawal.
+     * @return {@code true} if the request was submitted.
+     */
     @Override
     public boolean requestWithdrawal(String studentID, String internshipID, String reason) {
         Student student = studentRepo.getById(studentID);
@@ -123,7 +190,18 @@ public class ApplicationService implements IApplicationService {
         outputService.displayMessage("Withdrawal request submitted. Awaiting staff approval.");
         return true;
     }
-
+    /**
+     * Approves a student's withdrawal request (Used by Staff).
+     * <p>
+     * 1. Updates status to "Withdrawn".
+     * 2. Frees up a slot if the student was previously "Confirmed".
+     * 3. Removes the application from the student's record.
+     * </p>
+     *
+     * @param internshipID The internship ID.
+     * @param studentID    The student ID.
+     * @return {@code true} if approved.
+     */
     @Override
     public boolean approveWithdrawal(String internshipID, String studentID) {
         Internship internship = internshipRepo.getById(internshipID);
@@ -143,7 +221,16 @@ public class ApplicationService implements IApplicationService {
         }
         return approved;
     }
-
+    /**
+     * Rejects a student's withdrawal request (Used by Staff).
+     * <p>
+     * Reverts the student's status to their previous state (e.g., back to "Confirmed").
+     * </p>
+     *
+     * @param internshipID The internship ID.
+     * @param studentID    The student ID.
+     * @return {@code true} if rejected.
+     */
     @Override
     public boolean rejectWithdrawal(String internshipID, String studentID) {
         Internship internship = internshipRepo.getById(internshipID);

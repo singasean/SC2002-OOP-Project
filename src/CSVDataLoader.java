@@ -1,6 +1,24 @@
 import java.io.*;
 import java.util.*;
-
+/**
+ * Concrete implementation of the Data Loader strategy for Comma-Separated Value (CSV) files.
+ * <p>
+ * <b>Architectural Role:</b>
+ * This class belongs to the <b>Persistence Layer (Read Side)</b>. It acts as a translator
+ * that converts raw text data from the file system into in-memory Java Entities ({@link Student},
+ * {@link Internship}, etc.).
+ * </p>
+ * <p>
+ * <b>Robustness Features:</b>
+ * <ul>
+ * <li><b>Header Skipping:</b> Automatically detects and skips the first row of CSVs.</li>
+ * <li><b>Empty Line Handling:</b> Ignores blank lines to prevent parsing crashes.</li>
+ * <li><b>Safe Split:</b> Uses Regex splitting to handle cases where data might contain special characters.</li>
+ * <li><b>Partial Loading:</b> If one line is corrupt, it skips that line and continues loading the rest
+ * (Fault Tolerance), rather than crashing the entire application.</li>
+ * </ul>
+ * </p>
+ */
 // Single Responsibility - handles CSV loading only
 public class CSVDataLoader implements IDataLoader {
 
@@ -26,7 +44,15 @@ public class CSVDataLoader implements IDataLoader {
         }
         return students;
     }
-
+    /**
+     * Loads the list of Company Representatives.
+     * <p>
+     * <b>Expected Format:</b> {@code ID, Name, Company, Dept, Position, Email, Status}
+     * </p>
+     *
+     * @param filename The file path.
+     * @return A list of populated {@link CompanyRepresentative} objects.
+     */
     @Override
     public List<CompanyRepresentative> loadCompanyReps(String filename) {
         List<CompanyRepresentative> reps = new ArrayList<>();
@@ -57,7 +83,12 @@ public class CSVDataLoader implements IDataLoader {
         }
         return reps;
     }
-
+    /**
+     * Loads the list of Career Center Staff.
+     *
+     * @param filename The file path.
+     * @return A list of {@link CareerCenterStaff} objects.
+     */
     @Override
     public List<CareerCenterStaff> loadStaff(String filename) {
         List<CareerCenterStaff> staff = new ArrayList<>();
@@ -77,7 +108,12 @@ public class CSVDataLoader implements IDataLoader {
         }
         return staff;
     }
-
+    /**
+     * Helper method to read raw text lines from a file.
+     *
+     * @param filename The path to read.
+     * @return A list of strings, one per line.
+     */
     private List<String> readCSVFile(String filename) {
         List<String> lines = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {

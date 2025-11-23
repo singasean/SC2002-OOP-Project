@@ -1,5 +1,25 @@
 import java.util.*;
 
+/**
+ * The core orchestrator class for the Internship Management System (IMS).
+ * <p>
+ * <b>Architectural Role:</b>
+ * This class acts as the <b>System Controller</b> or <b>Facade</b>. It sits at the top of the
+ * control hierarchy.
+ * </p>
+ * <p>
+ * <b>Responsibilities:</b>
+ * <ol>
+ * <li><b>Lifecycle Management:</b> It keeps the application running in a loop until the user explicitly exits.</li>
+ * <li><b>Dependency Aggregation:</b> It holds references to all Services and Repositories, acting as the
+ * central hub for the application's state.</li>
+ * <li><b>Session Management:</b> It handles the transition between the "Anonymous" state (Login Screen)
+ * and the "Authenticated" state (User Menu).</li>
+ * <li><b>Controller Dispatching:</b> It uses the {@link MenuControllerFactory} to launch the correct
+ * interface for the logged-in user.</li>
+ * </ol>
+ * </p>
+ */
 public class InternshipManagementSystem {
     private final IAuthenticationService authService;
     private final IUserRepository<Student> studentRepo;
@@ -13,6 +33,25 @@ public class InternshipManagementSystem {
     private final MenuControllerFactory controllerFactory;
     private final Scanner scanner;
 
+    /**
+     * Constructs the System Orchestrator.
+     * <p>
+     * <b>Dependency Injection:</b> All dependencies are injected via the constructor.
+     * This makes the system highly testable, as we can inject Mock objects for testing
+     * without launching the real console or file system.
+     * </p>
+     * * @param authService        Handles login/security.
+     * @param studentRepo        Storage for Students.
+     * @param companyRepo        Storage for Company Reps.
+     * @param staffRepo          Storage for Staff.
+     * @param internshipRepo     Storage for Internships.
+     * @param applicationService Business logic for applications.
+     * @param approvalService    Business logic for approvals.
+     * @param dataLoader         Handles initial data loading.
+     * @param outputService      Handles printing to screen.
+     * @param controllerFactory  Creates the user-specific menus.
+     * @param scanner            Reads user input.
+     */
     public InternshipManagementSystem(IAuthenticationService authService,
                                       IUserRepository<Student> studentRepo,
                                       IUserRepository<CompanyRepresentative> companyRepo,
@@ -36,7 +75,19 @@ public class InternshipManagementSystem {
         this.controllerFactory = controllerFactory;
         this.scanner = scanner;
     }
-
+    /**
+     * Loads the initial state of the application from external files.
+     * <p>
+     * <b>Initialization Sequence:</b>
+     * 1. Reads CSV files.
+     * 2. Populates the in-memory Repositories.
+     * 3. Registers User credentials with the AuthenticationService (Passwords).
+     * </p>
+     *
+     * @param studentFile    Path to student CSV.
+     * @param companyRepFile Path to company rep CSV.
+     * @param staffFile      Path to staff CSV.
+     */
     public void loadInitialData(String studentCSV, String companyCSV, String staffCSV) {
         List<Student> students = dataLoader.loadStudents(studentCSV);
         for (Student s : students) {
@@ -59,7 +110,15 @@ public class InternshipManagementSystem {
 
         outputService.displayMessage("Data loaded successfully!");
     }
-
+    /**
+     * Starts the main application loop.
+     * <p>
+     * <b>The Loop:</b>
+     * The application runs indefinitely inside {@code while(true)} until the user chooses to "Exit"
+     * at the Login screen. This ensures that when a user logs out, the system returns to the
+     * login prompt rather than terminating.
+     * </p>
+     */
     public void run() {
         boolean running = true;
 
@@ -95,7 +154,16 @@ public class InternshipManagementSystem {
             }
         }
     }
-
+    /**
+     * Orchestrates the login workflow.
+     * <p>
+     * <b>Workflow:</b>
+     * 1. Captures ID and Password.
+     * 2. Delegates verification to {@link AuthenticationService}.
+     * 3. If successful, identifies the User object.
+     * 4. Passes the User to {@link #runUserSession(User)}.
+     * </p>
+     */
     private <T extends User> void handleLogin(IUserRepository<T> repo) {
         outputService.displayMessage("Enter User ID or Email:");
         String userIDOrEmail = scanner.nextLine();
@@ -116,7 +184,16 @@ public class InternshipManagementSystem {
             }
         }
     }
-
+    /**
+     * Launches the user-specific session.
+     * <p>
+     * <b>Design Pattern:</b> Uses the <b>Factory Pattern</b> via {@link MenuControllerFactory}
+     * to obtain the correct controller (Polymorphism). The system acts blindly here,
+     * relying on the {@link IMenuController} interface to handle the specific interactions.
+     * </p>
+     *
+     * @param user The authenticated User object.
+     */
     private void runUserSession(User user) {
         IMenuController controller = controllerFactory.createController(user);
         boolean loggedIn = true;
